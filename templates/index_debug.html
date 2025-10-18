@@ -1,0 +1,218 @@
+<!--<!DOCTYPE html>-->
+<!--<html lang="en">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--    <title>Debug - Encryption Tool</title>-->
+<!--    <style>-->
+<!--        body { font-family: Arial, sans-serif; padding: 20px; }-->
+<!--        .container { max-width: 600px; margin: 0 auto; }-->
+<!--        textarea, button, select { width: 100%; margin: 10px 0; padding: 10px; }-->
+<!--        .debug { background: #f5f5f5; padding: 10px; margin: 10px 0; }-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body>-->
+<!--    <div class="container">-->
+<!--        <h1>🔐 Debug Version</h1>-->
+
+<!--        <div class="debug">-->
+<!--            <h3>Debug Info:</h3>-->
+<!--            <div id="debugInfo">Ready for testing...</div>-->
+<!--        </div>-->
+
+<!--        <div>-->
+<!--            <label>Enter Text:</label>-->
+<!--            <textarea id="plainText" rows="3">hello</textarea>-->
+<!--        </div>-->
+
+<!--        <div>-->
+<!--            <label>Select Algorithm:</label>-->
+<!--            <select id="algorithm">-->
+<!--                <option value="caesar">Caesar Cipher</option>-->
+<!--                <option value="base64">Base64</option>-->
+<!--                <option value="aes">AES</option>-->
+<!--            </select>-->
+<!--        </div>-->
+
+<!--        <button onclick="testEncrypt()">Test Encrypt</button>-->
+<!--        <button onclick="testDecrypt()">Test Decrypt</button>-->
+
+<!--        <div>-->
+<!--            <label>Result:</label>-->
+<!--            <textarea id="result" rows="3" readonly></textarea>-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    <script>-->
+<!--        function debugLog(message) {-->
+<!--            const debugDiv = document.getElementById('debugInfo');-->
+<!--            debugDiv.innerHTML += '<br>' + new Date().toLocaleTimeString() + ': ' + message;-->
+<!--            console.log(message);-->
+<!--        }-->
+
+<!--        async function testEncrypt() {-->
+<!--            const text = document.getElementById('plainText').value;-->
+<!--            const algorithm = document.getElementById('algorithm').value;-->
+
+<!--            debugLog(`Encrypting: "${text}" with ${algorithm}`);-->
+
+<!--            try {-->
+<!--                const response = await fetch('/encrypt', {-->
+<!--                    method: 'POST',-->
+<!--                    headers: {-->
+<!--                        'Content-Type': 'application/json',-->
+<!--                    },-->
+<!--                    body: JSON.stringify({-->
+<!--                        text: text,-->
+<!--                        algorithm: algorithm-->
+<!--                    })-->
+<!--                });-->
+
+<!--                debugLog(`Response status: ${response.status}`);-->
+
+<!--                const data = await response.json();-->
+<!--                debugLog(`Response data: ${JSON.stringify(data)}`);-->
+
+<!--                if (data.error) {-->
+<!--                    document.getElementById('result').value = 'Error: ' + data.error;-->
+<!--                } else {-->
+<!--                    document.getElementById('result').value = data.encrypted_text;-->
+<!--                }-->
+<!--            } catch (error) {-->
+<!--                debugLog('Fetch error: ' + error);-->
+<!--                document.getElementById('result').value = 'Network error: ' + error;-->
+<!--            }-->
+<!--        }-->
+
+<!--        async function testDecrypt() {-->
+<!--            const encryptedText = document.getElementById('result').value;-->
+<!--            const algorithm = document.getElementById('algorithm').value;-->
+
+<!--            if (!encryptedText) {-->
+<!--                debugLog('No encrypted text to decrypt');-->
+<!--                return;-->
+<!--            }-->
+
+<!--            debugLog(`Decrypting: "${encryptedText}" with ${algorithm}`);-->
+
+<!--            try {-->
+<!--                const response = await fetch('/decrypt', {-->
+<!--                    method: 'POST',-->
+<!--                    headers: {-->
+<!--                        'Content-Type': 'application/json',-->
+<!--                    },-->
+<!--                    body: JSON.stringify({-->
+<!--                        encrypted_text: encryptedText,-->
+<!--                        algorithm: algorithm-->
+<!--                    })-->
+<!--                });-->
+
+<!--                debugLog(`Response status: ${response.status}`);-->
+
+<!--                const data = await response.json();-->
+<!--                debugLog(`Response data: ${JSON.stringify(data)}`);-->
+
+<!--                if (data.error) {-->
+<!--                    document.getElementById('plainText').value = 'Error: ' + data.error;-->
+<!--                } else {-->
+<!--                    document.getElementById('plainText').value = data.decrypted_text;-->
+<!--                }-->
+<!--            } catch (error) {-->
+<!--                debugLog('Fetch error: ' + error);-->
+<!--            }-->
+<!--        }-->
+
+<!--        debugLog('Page loaded successfully');-->
+<!--    </script>-->
+<!--</body>-->
+<!--</html>-->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic Encryption Tool</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        input, button, textarea { display: block; margin: 10px 0; padding: 10px; width: 100%; }
+    </style>
+</head>
+<body>
+    <h1>Basic Encryption Test</h1>
+
+    <input type="text" id="inputText" value="hello" placeholder="Enter text">
+
+    <select id="algorithm">
+        <option value="caesar">Caesar Cipher</option>
+        <option value="base64">Base64</option>
+    </select>
+
+    <button onclick="encrypt()">Encrypt</button>
+    <button onclick="decrypt()">Decrypt</button>
+
+    <textarea id="output" placeholder="Result will appear here" readonly></textarea>
+
+    <div id="status"></div>
+
+    <script>
+        function showStatus(message) {
+            document.getElementById('status').textContent = message;
+            console.log(message);
+        }
+
+        async function encrypt() {
+            const text = document.getElementById('inputText').value;
+            const algorithm = document.getElementById('algorithm').value;
+
+            showStatus('Sending encrypt request...');
+
+            try {
+                const response = await fetch('/encrypt', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({text: text, algorithm: algorithm})
+                });
+
+                const data = await response.json();
+                showStatus(`Response: ${response.status}`);
+
+                if (data.encrypted_text) {
+                    document.getElementById('output').value = data.encrypted_text;
+                } else {
+                    document.getElementById('output').value = 'Error: ' + data.error;
+                }
+            } catch (error) {
+                showStatus('Error: ' + error);
+            }
+        }
+
+        async function decrypt() {
+            const text = document.getElementById('output').value;
+            const algorithm = document.getElementById('algorithm').value;
+
+            showStatus('Sending decrypt request...');
+
+            try {
+                const response = await fetch('/decrypt', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({encrypted_text: text, algorithm: algorithm})
+                });
+
+                const data = await response.json();
+                showStatus(`Response: ${response.status}`);
+
+                if (data.decrypted_text) {
+                    document.getElementById('inputText').value = data.decrypted_text;
+                } else {
+                    showStatus('Error: ' + data.error);
+                }
+            } catch (error) {
+                showStatus('Error: ' + error);
+            }
+        }
+    </script>
+</body>
+</html>

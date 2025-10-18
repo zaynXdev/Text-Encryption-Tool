@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Encryption Tool</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Text Encryption Tool</h1>
+
+        <!-- Input Section -->
+        <div class="form-group">
+            <label for="plainText">Enter Plain Text:</label>
+            <textarea id="plainText" rows="4" placeholder="Type your text here...">hello</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="algorithm">Select Encryption Algorithm:</label>
+            <select id="algorithm">
+                <option value="caesar">Caesar Cipher</option>
+                <option value="base64">Base64 Encoding</option>
+                <option value="aes">AES Encryption</option>
+                <option value="sha256">SHA-256 Hash</option>
+            </select>
+        </div>
+
+        <div class="button-group">
+            <button id="encryptBtn" onclick="encryptText()">🔒 Encrypt Text</button>
+            <button id="decryptBtn" onclick="decryptText()" style="display: none;">🔓 Decrypt Text</button>
+        </div>
+
+        <!-- Encrypted Text Section -->
+        <div class="form-group result">
+            <label for="cipherText">Encrypted Text (Ciphertext):</label>
+            <textarea id="cipherText" rows="4" readonly placeholder="Encrypted text will appear here..."></textarea>
+            <div class="action-buttons">
+                <button onclick="copyToClipboard()" class="action-btn copy-btn">📋 Copy Encrypted</button>
+                <button onclick="downloadEncrypted()" class="action-btn download-btn">💾 Download Encrypted</button>
+            </div>
+        </div>
+
+        <!-- Decrypted Text Section -->
+        <div class="form-group result" id="decryptedSection" style="display: none;">
+            <label for="decryptedText">Decrypted Text:</label>
+            <textarea id="decryptedText" rows="4" readonly placeholder="Decrypted text will appear here..."></textarea>
+            <div class="action-buttons">
+                <button onclick="copyDecrypted()" class="action-btn copy-btn">📋 Copy Decrypted</button>
+                <button onclick="downloadDecrypted()" class="action-btn download-btn">💾 Download Decrypted</button>
+            </div>
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="action-buttons full-width">
+            <button onclick="clearAll()" class="action-btn clear-btn">🗑️ Clear All</button>
+            <button onclick="swapText()" class="action-btn swap-btn">🔄 Swap Text</button>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <span class="stat-label">Input Length:</span>
+                <span id="inputLength">5</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Encrypted Length:</span>
+                <span id="encryptedLength">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Decrypted Length:</span>
+                <span id="decryptedLength">0</span>
+            </div>
+        </div>
+
+        <div id="error-message" class="error" style="display: none;"></div>
+        <div id="success-message" class="success" style="display: none;"></div>
+    </div>
+
+    <script>
+        console.log("🔧 Encryption Tool Loaded!");
+
+        let currentAlgorithm = 'caesar';
+        let currentEncryptedText = '';
+
+        function updateStats() {
+            document.getElementById('inputLength').textContent = document.getElementById('plainText').value.length;
+            document.getElementById('encryptedLength').textContent = document.getElementById('cipherText').value.length;
+            document.getElementById('decryptedLength').textContent = document.getElementById('decryptedText').value.length;
+        }
+
+        function showMessage(message, type) {
+            const errorDiv = document.getElementById('error-message');
+            const successDiv = document.getElementById('success-message');
+
+            console.log(`Message: ${message} (${type})`);
+
+            if (type === 'error') {
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+                successDiv.style.display = 'none';
+            } else {
+                successDiv.textContent = message;
+                successDiv.style.display = 'block';
+                errorDiv.style.display = 'none';
+            }
+
+            // Auto-hide success messages after 3 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    successDiv.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        function encryptText() {
+            console.log("🔄 Encrypt button clicked!");
+
+            const text = document.getElementById('plainText').value.trim();
+            const algorithm = document.getElementById('algorithm').value;
+
+            console.log(`Sending: "${text}" with ${algorithm}`);
+
+            if (!text) {
+                showMessage('❌ Please enter some text to encrypt', 'error');
+                return;
+            }
+
+            showMessage('⏳ Encrypting...', 'success');
+            currentAlgorithm = algorithm;
+
+            // Show loading state
+            const encryptBtn = document.getElementById('encryptBtn');
+            const originalText = encryptBtn.textContent;
+            encryptBtn.textContent = '⏳ Encrypting...';
+            encryptBtn.disabled = true;
+
+            // Send to backend
+            fetch('/encrypt', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({text: text, algorithm: algorithm})
+            })
+            .then(response => {
+                console.log(`Response status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+
+                if (data.error) {
+                    showMessage('❌ ' + data.error, 'error');
+                } else {
+                    currentEncryptedText = data.encrypted_text;
+                    document.getElementById('cipherText').value = data.encrypted_text;
+                    document.getElementById('decryptBtn').style.display = 'block';
+
+                    // Hide decrypted section when new encryption happens
+                    document.getElementById('decryptedSection').style.display = 'none';
+                    document.getElementById('decryptedText').value = '';
+
+                    showMessage('✅ Text encrypted successfully!', 'success');
+                    updateStats();
+                    console.log("✅ Encryption successful!");
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                showMessage('❌ Network error: ' + error, 'error');
+            })
+            .finally(() => {
+                // Restore button state
+                encryptBtn.textContent = originalText;
+                encryptBtn.disabled = false;
+            });
+        }
+
+        function decryptText() {
+            console.log("🔄 Decrypt button clicked!");
+
+            if (!currentEncryptedText) {
+                showMessage('❌ No encrypted text available to decrypt', 'error');
+                return;
+            }
+
+            showMessage('⏳ Decrypting...', 'success');
+
+            // Show loading state
+            const decryptBtn = document.getElementById('decryptBtn');
+            const originalText = decryptBtn.textContent;
+            decryptBtn.textContent = '⏳ Decrypting...';
+            decryptBtn.disabled = true;
+
+            fetch('/decrypt', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    encrypted_text: currentEncryptedText,
+                    algorithm: currentAlgorithm
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Decrypt response:', data);
+
+                if (data.error) {
+                    showMessage('❌ ' + data.error, 'error');
+                } else {
+                    // Show decrypted text in the separate decrypted section
+                    document.getElementById('decryptedText').value = data.decrypted_text;
+                    document.getElementById('decryptedSection').style.display = 'block';
+                    showMessage('✅ Text decrypted successfully!', 'success');
+                    updateStats();
+                    console.log("✅ Decryption successful!");
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                showMessage('❌ Network error: ' + error, 'error');
+            })
+            .finally(() => {
+                // Restore button state
+                decryptBtn.textContent = originalText;
+                decryptBtn.disabled = false;
+            });
+        }
+
+        function copyToClipboard() {
+            const cipherText = document.getElementById('cipherText');
+            if (!cipherText.value.trim()) {
+                showMessage('❌ No encrypted text to copy', 'error');
+                return;
+            }
+
+            cipherText.select();
+            document.execCommand('copy');
+            showMessage('✅ Encrypted text copied to clipboard!', 'success');
+        }
+
+        function copyDecrypted() {
+            const decryptedText = document.getElementById('decryptedText');
+            if (!decryptedText.value.trim()) {
+                showMessage('❌ No decrypted text to copy', 'error');
+                return;
+            }
+
+            decryptedText.select();
+            document.execCommand('copy');
+            showMessage('✅ Decrypted text copied to clipboard!', 'success');
+        }
+
+        function downloadEncrypted() {
+            const cipherText = document.getElementById('cipherText').value;
+            if (!cipherText.trim()) {
+                showMessage('❌ No encrypted text to download', 'error');
+                return;
+            }
+
+            const blob = new Blob([cipherText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `encrypted_${currentAlgorithm}_${Date.now()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showMessage('✅ Encrypted file downloaded!', 'success');
+        }
+
+        function downloadDecrypted() {
+            const decryptedText = document.getElementById('decryptedText').value;
+            if (!decryptedText.trim()) {
+                showMessage('❌ No decrypted text to download', 'error');
+                return;
+            }
+
+            const blob = new Blob([decryptedText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `decrypted_${currentAlgorithm}_${Date.now()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showMessage('✅ Decrypted file downloaded!', 'success');
+        }
+
+        function clearAll() {
+            document.getElementById('plainText').value = '';
+            document.getElementById('cipherText').value = '';
+            document.getElementById('decryptedText').value = '';
+            document.getElementById('algorithm').value = 'caesar';
+            document.getElementById('decryptBtn').style.display = 'none';
+            document.getElementById('decryptedSection').style.display = 'none';
+            currentAlgorithm = 'caesar';
+            currentEncryptedText = '';
+            updateStats();
+            showMessage('✅ All fields cleared!', 'success');
+        }
+
+        function swapText() {
+            const plainText = document.getElementById('plainText').value;
+            const decryptedText = document.getElementById('decryptedText').value;
+
+            if (decryptedText) {
+                document.getElementById('plainText').value = decryptedText;
+                document.getElementById('decryptedText').value = plainText;
+                showMessage('✅ Text swapped!', 'success');
+                updateStats();
+            } else {
+                showMessage('❌ No decrypted text to swap with', 'error');
+            }
+        }
+
+        // Initialize
+        document.getElementById('algorithm').value = 'caesar';
+        document.getElementById('plainText').addEventListener('input', updateStats);
+        document.getElementById('cipherText').addEventListener('input', updateStats);
+        document.getElementById('decryptedText').addEventListener('input', updateStats);
+        updateStats();
+
+        console.log("🎯 Encryption Tool Ready! Enter text and click 'Encrypt Text'");
+    </script>
+</body>
+</html>
